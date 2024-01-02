@@ -1,49 +1,47 @@
-// Debounce function to delay the request
-function debounce(func, delay) {
-    let timeoutId;
-    return function () {
-      const context = this;
-      const args = arguments;
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        func.apply(context, args);
-      }, delay);
-    };
+// Function to check if URL is valid
+function isValidURL(url) {
+  try {
+    new URL(url);
+    return true;
+  } catch (error) {
+    return false;
   }
+}
 
-  // Checking URL if URL is valid or not
-  function isValidURL(url) {
-    try {
-      new URL(url);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
+// Dummy server call
+function checkURLExistence(url) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      const exists = Math.random() < 0.5; // Simulate existence randomly
+      const type = exists ? (Math.random() < 0.5 ? 'file' : 'folder') : 'not found';
+      resolve({ exists, type });
+    }, 1000);
+  });
+}
 
-  // Dummy server call
-  function checkURLExistence(url) {
-    //  response after 1 second
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const exists = Math.random() < 0.5; // Simulate existence randomly
-        const type = exists ? (Math.random() < 0.5 ? 'file' : 'folder') : 'not found';
-        resolve({ exists, type });
-      }, 1000);
-    });
-  }
+const inputElement = document.getElementById('urlInput');
+const resultElement = document.getElementById('result');
 
-  const inputElement = document.getElementById('urlInput');
-  const resultElement = document.getElementById('result');
+let currentURL = '';
 
-  inputElement.addEventListener('input', debounce(async function (event) {
-    const enteredURL = event.target.value.trim();
+inputElement.addEventListener('input', async function (event) {
+  const enteredURL = event.target.value.trim();
 
-    if (isValidURL(enteredURL)) {
+  if (enteredURL !== currentURL) {
+    currentURL = enteredURL;
+    const urlToCheck = enteredURL; // Store the URL to check in case it changes during the async request
+
+    if (isValidURL(urlToCheck)) {
       resultElement.textContent = 'Checking...';
 
       try {
-        const response = await checkURLExistence(enteredURL);
+        const response = await checkURLExistence(urlToCheck);
+
+        // Check if the URL changed during the async request
+        if (urlToCheck !== currentURL) {
+          return; // If URL changed, don't update the UI with outdated response
+        }
+
         if (response.exists) {
           resultElement.textContent = `URL is Valid and it's a ${response.type}`;
         } else {
@@ -52,9 +50,10 @@ function debounce(func, delay) {
       } catch (error) {
         resultElement.textContent = 'Error checking URL';
       }
-    } else if(enteredURL== "")  {
+    } else if (urlToCheck === "") {
       resultElement.textContent = 'Enter the URL to Validate';
-    }else {
+    } else {
       resultElement.textContent = 'Invalid URL';
     }
-  }, 500));
+  }
+});
